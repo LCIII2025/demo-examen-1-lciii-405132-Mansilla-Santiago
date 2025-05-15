@@ -46,11 +46,13 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player updatePlayerBalance(Long playerId, BigDecimal balanceChipsImpact) {
-        // TODO: Implementar el método de manera tal que impacte en el usuario el balancImpact pasado por parametro.
+        // DONE: Implementar el método de manera tal que impacte en el usuario el balancImpact pasado por parametro.
         //  Como resultado del guardado debe retornar el usuario nuevamente con el balance actualizado.
         //  Es decir que...->  nuevoBalance = actualBalance + balanceChipsImpact
-
-         return null;
+        PlayerEntity playerEntity = playerJpaRepository.getReferenceById(playerId);
+        BigDecimal newBalance = playerEntity.getBalanceChips().subtract(balanceChipsImpact);
+        playerEntity.setBalanceChips(newBalance);
+         return modelMapper.map(playerJpaRepository.save(playerEntity), Player.class);
     }
 
     @Override
