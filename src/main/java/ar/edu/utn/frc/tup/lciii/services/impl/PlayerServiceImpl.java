@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class PlayerServiceImpl implements PlayerService {
@@ -57,14 +58,19 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerResponseDTO createNewPlayer(NewPlayerRequestDTO newPlayerRequestDTO) throws IllegalAccessException {
-        // TODO: Implementar el método de manera tal que cree un nuevo usuario con los datos recibidos por parametro
+        // DONE: Implementar el método de manera tal que cree un nuevo usuario con los datos recibidos por parametro
         //  y asigne por unica vez 1000 fichas de regalo en el balance. El metodo debe validar que no exista
         //  otro usuario con el mismo user_name o email; si existe, debe retornar una exepcion del
         //  tipo IllegalArgumentException con el mensaje "The user_name or email already exists"
         //  Ayuda: Usar el metodo userAvailable()
         if(userAvailable(newPlayerRequestDTO.getEmail(), newPlayerRequestDTO.getUserName())) {
             PlayerEntity playerEntity = new PlayerEntity();
-            // TODO: Completar aquí
+            // DONE: Completar aquí
+            playerEntity.setUserName(newPlayerRequestDTO.getUserName());
+            playerEntity.setPassword(newPlayerRequestDTO.getPassword());
+            playerEntity.setEmail(newPlayerRequestDTO.getEmail());
+            playerEntity.setAvatar(DEFAULT_AVATAR);
+            playerEntity.setBalanceChips(INITIAL_BALANCE);
             return modelMapper.map(playerEntity, PlayerResponseDTO.class);
         } else {
             throw new IllegalArgumentException("The user_name or email already exists");
@@ -72,9 +78,15 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     private Boolean userAvailable(String email, String userName) {
-        // TODO: Implementar el método de manera tal que valide contra la base de datos que no exista un jugador
+        // DONE: Implementar el método de manera tal que valide contra la base de datos que no exista un jugador
         //  con el email o el userName recibidos por paarmetros
-
-        return null;
+        Optional<PlayerEntity> playerEntity = playerJpaRepository.findByUserNameOrEmail(userName, email);
+        // if (playerEntity == null) {
+        //      return false;
+        // }
+        if (playerEntity.isEmpty()) {
+            return false;
+        }
+        return true;
     }
 }
