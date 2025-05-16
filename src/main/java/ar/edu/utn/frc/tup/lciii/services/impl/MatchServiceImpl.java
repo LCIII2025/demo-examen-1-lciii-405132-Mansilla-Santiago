@@ -214,9 +214,12 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Optional<Match> getPlayingMatch(Long playerId) {
-        //TODO: Implementar el metodo para que retorne, si existe, el match que esté en estado PLAYING.
+        //DONE: Implementar el metodo para que retorne, si existe, el match que esté en estado PLAYING.
         // Si existieran mas de uno, (Situación que no debiera ser posible) retornar el primero
-
+        Optional<List<MatchEntity>> matchEntityList = matchJpaRepository.getAllByPlayerIdAndMatchStatus(playerId, MatchStatus.PLAYING);
+        if (matchEntityList.isPresent()) {
+            matchEntityList.get().get(0);
+        }
         return Optional.empty();
     }
 
@@ -235,16 +238,17 @@ public class MatchServiceImpl implements MatchService {
     }
 
     private void playAppRound(Round round, Long playerId) {
-        // TODO: Completar el metodo para que ejecuite los pasos descriptos
+        // DONE: Completar el metodo para que ejecuite los pasos descriptos
         while(round.getRoundHandStatusApp().equals(RoundHandStatus.IN_GAME)) {
             // 1 - Tomar del round las cartas de la app y agregarle la siguiente carta del mazo -> Ayuda: deckService.takeCard
-
+            List<Card> appCards = round.getAppCards();
+            appCards.add(deckService.takeCard(round.getDeck(), round.getDeckIndexPosition()));
             // 2 - Actualizar el indice del mazo (deckIndexPosition)
-
+            round.setDeckIndexPosition(round.getDeckIndexPosition() + 1);
             // 3 - Calcular la sumarización de las cartas de la app -> Ayuda: getCardsValue
-
+            round.setAppCardsValue(getCardsValue(round.getAppCards()));
             // 4 - Calcular el estado del round para la app -> Ayuda: calculateAppHand
-
+            round.setRoundHandStatusApp(calculateAppHand(round.getAppCardsValue()));
         }
         calculateWinner(round, playerId);
     }
@@ -255,27 +259,33 @@ public class MatchServiceImpl implements MatchService {
                 round.setWinner(RoundWinner.APP);
             } else {
                 round.setWinner(RoundWinner.APP);
-                // TODO: Descontar la apuesta del player del balance usando playerService.updatePlayerBalance
+                // DONE: Descontar la apuesta del player del balance usando playerService.updatePlayerBalance
+                playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND.negate());
             }
         } else {
             if(round.getRoundHandStatusApp().equals(RoundHandStatus.EXCEEDED)) {
                 round.setWinner(RoundWinner.PLAYER);
                 if(round.getPlayerCardsValue().compareTo(CARDS_LIMIT) == 0) {
-                    // TODO: Sumar la apuesta del player * 2 al balance usando playerService.updatePlayerBalance
+                    // DONE: Sumar la apuesta del player * 2 al balance usando playerService.updatePlayerBalance
+                    playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND.multiply(BigDecimal.valueOf(2)));
                 } else {
-                    // TODO: Sumar la apuesta del player al balance usando playerService.updatePlayerBalance
+                    // DONE: Sumar la apuesta del player al balance usando playerService.updatePlayerBalance
+                    playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND);
                 }
             } else {
                 if(round.getPlayerCardsValue().compareTo(round.getAppCardsValue()) > 0) {
                     round.setWinner(RoundWinner.PLAYER);
                     if(round.getPlayerCardsValue().compareTo(CARDS_LIMIT) == 0) {
-                        // TODO: Sumar la apuesta del player * 2 al balance usando playerService.updatePlayerBalance
+                        // DONE: Sumar la apuesta del player * 2 al balance usando playerService.updatePlayerBalance
+                        playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND.multiply(BigDecimal.valueOf(2)));
                     } else {
-                        // TODO: Sumar la apuesta del player al balance usando playerService.updatePlayerBalance
+                        // DONE: Sumar la apuesta del player al balance usando playerService.updatePlayerBalance
+                        playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND);
                     }
                 } else {
                     round.setWinner(RoundWinner.APP);
-                    // TODO: Descontar la apuesta del player del balance usando playerService.updatePlayerBalance
+                    // DONE: Descontar la apuesta del player del balance usando playerService.updatePlayerBalance
+                    playerService.updatePlayerBalance(playerId, CHIPS_PER_ROUND.negate());
                 }
             }
         }
@@ -289,13 +299,18 @@ public class MatchServiceImpl implements MatchService {
     }
 
     private Match createMatch(Player player) {
-        // TODO: Crear un match con los siguientes datos:
+        // DONE: Crear un match con los siguientes datos:
         //  - El player recibido por parametro
         //  - El Match debe tener el estado PLAYING
         //  - Guardar el Match y retornar la respuesta mapeada a Match
-        
-
-        return null;
+        Match match = new Match();
+        List<Round> rounds = new ArrayList<>();
+        match.setRounds(rounds);
+        match.setPlayer(player);
+        match.setMatchStatus(MatchStatus.PLAYING);
+        MatchEntity matchEntity = modelMapper.map(match, MatchEntity.class);
+        MatchEntity matchEntitySaved = matchJpaRepository.save(matchEntity);
+        return modelMapper.map(matchEntitySaved, Match.class);
     }
 
     private Optional<Round> hasUnfinishedRound(Match match) {

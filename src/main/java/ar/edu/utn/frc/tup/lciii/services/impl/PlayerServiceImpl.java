@@ -51,7 +51,7 @@ public class PlayerServiceImpl implements PlayerService {
         //  Como resultado del guardado debe retornar el usuario nuevamente con el balance actualizado.
         //  Es decir que...->  nuevoBalance = actualBalance + balanceChipsImpact
         PlayerEntity playerEntity = playerJpaRepository.getReferenceById(playerId);
-        BigDecimal newBalance = playerEntity.getBalanceChips().subtract(balanceChipsImpact);
+        BigDecimal newBalance = playerEntity.getBalanceChips().add(balanceChipsImpact);
         playerEntity.setBalanceChips(newBalance);
          return modelMapper.map(playerJpaRepository.save(playerEntity), Player.class);
     }
