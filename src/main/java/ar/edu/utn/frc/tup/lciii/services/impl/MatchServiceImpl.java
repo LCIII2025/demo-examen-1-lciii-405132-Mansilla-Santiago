@@ -47,14 +47,19 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public List<MatchResponseDTO> getMatchesByPlayer(Long playerId) {
-        // TODO: Completar el metodo de manera tal que retorne todas las partidas
+        // DONE: Completar el metodo de manera tal que retorne todas las partidas
         //  en las que haya participado un jugador y que ya hayan finalizado.
         //  Si el jugador no tiene partidas finalizadas debe retornar una exepción del tipo
         //  EntityNotFoundException con el mensaje "The player do not have matches finished"
         List<MatchResponseDTO> matches = new ArrayList<>();
         Optional<List<MatchEntity>> matchEntityList = matchJpaRepository.getAllByPlayerIdAndMatchStatus(playerId, MatchStatus.FINISH);
         if(matchEntityList.isPresent()) {
-            // TODO: Recorrer la lista y mapear el objeto
+            // DONE: Recorrer la lista y mapear el objeto
+            for (MatchEntity matchEntity : matchEntityList.get()) {
+                //matches.add(modelMapper.map(matchEntity, MatchResponseDTO.class));
+                MatchResponseDTO matchResponseDTO = modelMapper.map(matchEntity, MatchResponseDTO.class);
+                matches.add(matchResponseDTO);
+            }
             return matches;
         } else {
             throw new EntityNotFoundException("The player do not have matches finished");
@@ -288,33 +293,49 @@ public class MatchServiceImpl implements MatchService {
         //  - El player recibido por parametro
         //  - El Match debe tener el estado PLAYING
         //  - Guardar el Match y retornar la respuesta mapeada a Match
+        
 
         return null;
     }
 
     private Optional<Round> hasUnfinishedRound(Match match) {
-        // TODO: Implementar el metódo de manera tal que si hay un round sin terminar (winner == null),
+        // DONE: Implementar el metódo de manera tal que si hay un round sin terminar (winner == null),
         //  lo retorne en un Optional, sino, el Optional se retorna vacio.
-
+        for (Round round : match.getRounds()) {
+            if (round.getWinner() == null) {
+                return Optional.of(round);
+            }
+        }
         return Optional.empty();
     }
 
     private BigDecimal getCardsValue(List<Card> cardsToSummarize) {
-        // TODO: Sumar los valores de todas las cartas recibidas por parametro y retornar el valor de la sumarización
-
-        return null;
+        // DONE: Sumar los valores de todas las cartas recibidas por parametro y retornar el valor de la sumarización
+        BigDecimal sum = new BigDecimal(0);
+        for (Card card : cardsToSummarize) {
+            sum = card.getValue();
+        }
+        return sum;
     }
 
     private RoundHandStatus calculateRoundHand(BigDecimal cardsValue) {
-        // TODO: Retornar RoundHandStatus.EXCEEDED si excede de 7.5, de lo contrario retornar RoundHandStatus.IN_GAME
-
-        return null;
+        // DONE: Retornar RoundHandStatus.EXCEEDED si excede de 7.5, de lo contrario retornar RoundHandStatus.IN_GAME
+        if (cardsValue.intValue() > 7.5) {
+            return RoundHandStatus.EXCEEDED;
+        } else {
+            return RoundHandStatus.IN_GAME;
+        }
     }
 
     private RoundHandStatus calculateAppHand(BigDecimal cardsValue) {
-        // TODO: Retornar RoundHandStatus.EXCEEDED si excede de 7.5 o RoundHandStatus.STOPPED si excede 5
+        // DONE: Retornar RoundHandStatus.EXCEEDED si excede de 7.5 o RoundHandStatus.STOPPED si excede 5
         //  de lo contrario retornar RoundHandStatus.IN_GAME
-
-        return null;
+        if (cardsValue.intValue() > 7.5) {
+            return RoundHandStatus.EXCEEDED;
+        } else if (cardsValue.intValue() > 5) {
+            return RoundHandStatus.STOPPED;
+        } else{
+            return RoundHandStatus.IN_GAME;
+        }
     }
 }
