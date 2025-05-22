@@ -2,7 +2,6 @@ package ar.edu.utn.frc.tup.lciii.dtos.round;
 
 
 import ar.edu.utn.frc.tup.lciii.models.*;
-import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
