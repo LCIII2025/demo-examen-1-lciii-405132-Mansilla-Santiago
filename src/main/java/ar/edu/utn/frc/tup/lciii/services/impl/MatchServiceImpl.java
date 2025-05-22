@@ -16,7 +16,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -165,7 +164,7 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public RoundResponseDTO playRoundMatch(Long matchId, Long roundId, RoundPlayDTO roundPlayDTO) {
-        // TODO: Implementar el metodo de manera tal que haga las siguiestes acciones y validaciones:
+        // DONE: Implementar el metodo de manera tal que haga las siguiestes acciones y validaciones:
 
         //  1. Validar que el matchId exista en la DB, si no exite retornar una exepción del
         //  tipo EntityNotFoundException con el mensaje "The match id {matchId} not found"
