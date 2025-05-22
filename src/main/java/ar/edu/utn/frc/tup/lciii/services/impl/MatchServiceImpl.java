@@ -15,8 +15,11 @@ import ar.edu.utn.frc.tup.lciii.services.RoundService;
 import jakarta.persistence.EntityNotFoundException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -99,53 +102,61 @@ public class MatchServiceImpl implements MatchService {
     @Transactional
     @Override
     public RoundResponseDTO createRoundMatch(Long matchId, NewMatchRoundRequestDTO newMatchRoundRequestDTO) {
-        // TODO: Implementar el metodo de manera tal que haga las siguiestes acciones y validaciones:
-        //  1. Validar que el matchId exista en la DB, si no exite retornar una exepción del
-        //  tipo EntityNotFoundException con el mensaje "The match id {matchId} not found"
-        //  2. Validar que el match le pertenezca al player recibido por parametro, sino retornar
-        //  una excepcion del tipo IllegalArgumentException con el mensaje "The match id {matchId} does not belong to player {playerId}"
-        //  3. Validar que el jugador no tenga rounds sin terminar, en ese caso, retornar el round sin terminar.
-        //  Si hay mas de uno retornar el primer elemento de la lista.
-        //  4. Validar que el jugador tenga suficientes fichas para iniciar un nuevo round, si no retornar una excecion del tipo
-        //  ResponseStatusException 403 con el mensaje "Insufficient balance"
-        //  5. Si las condiciones previas pasan correctamente, se debe crear un round con las siguientes caracteristicas:
-        //  5.a. Crear un mazo (Deck y mesclarlo)
-        //  5.b. Asignar la primera carta al jugador y la segunda a la app
-        //  5.c. Actualizar el indice del mazo (Round.deckIndexPosition)
-        //  5.d. Calcular los valores de las cartas de cada jugador (Round.playerCardsValue y Round.appCardsValue)
-        //  5.e. Calcular el estado de la mano de cada jugador (Round.roundHandStatusPlayer y Round.roundHandStatusApp)
-        //  5.f. Asignar las fichas en juego (Round.chipsInPlay)
+        // DONE: Implementar el metodo de manera tal que haga las siguiestes acciones y validaciones.
 
-        // 1
+        // 1. Validar que el matchId exista en la DB, si no exite retornar una exepción del
+        //  tipo EntityNotFoundException con el mensaje "The match id {matchId} not found"
         Match match = this.getMatchById(matchId);
 
-        // 2
+        // 2. Validar que el match le pertenezca al player recibido por parametro, sino retornar
+        //  una excepcion del tipo IllegalArgumentException con el mensaje "The match id {matchId} does not belong to player {playerId}"
+        if (!match.getPlayer().getId().equals(newMatchRoundRequestDTO.getPlayerId())) {
+            throw new IllegalArgumentException(String.format("The match id %d does not belong to player %d", matchId, newMatchRoundRequestDTO.getPlayerId()));
+        }
 
-        // 3
+        //  3. Validar que el jugador no tenga rounds sin terminar, en ese caso, retornar el round sin terminar.
+        //  Si hay mas de uno retornar el primer elemento de la lista.
         List<Round> roundsUnfinished = roundService.getUnfinishedRounds(matchId);
         if(!roundsUnfinished.isEmpty()) {
             return modelMapper.map(roundsUnfinished.get(0), RoundResponseDTO.class);
         }
 
-        // 4
+        //  4. Validar que el jugador tenga suficientes fichas para iniciar un nuevo round, si no retornar una excecion del tipo
+        //  ResponseStatusException 403 con el mensaje "Insufficient balance"
+        if (!(match.getPlayer().getBalanceChips().compareTo(CHIPS_PER_ROUND) >= 0)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Insufficient balance");
+        }
 
         // 5 ------INICIO--------
         Round round = new Round();
         round.setMatchId(matchId);
-        // 5.a
+        //  5.a. Crear un mazo (Deck y mesclarlo)
+        Deck deck = deckService.createDeck();
+        deckService.shuffleDeck(deck);
+        round.setDeck(deck);
 
-        // 5.b
+        //  5.b. Asignar la primera carta al jugador y la segunda a la app
+        List<Card> playerCards = new ArrayList<>();
+        playerCards.add(deck.getCards().get(0));
+        round.setPlayerCards(playerCards);
 
-        // 5.c
+        List<Card> appCards = new ArrayList<>();
+        appCards.add(deck.getCards().get(1));
+        round.setAppCards(appCards);
+
+        //  5.c. Actualizar el indice del mazo (Round.deckIndexPosition)
         round.setDeckIndexPosition(2);
 
-        // 5.d
+        //  5.d. Calcular los valores de las cartas de cada jugador (Round.playerCardsValue y Round.appCardsValue)
         round.setPlayerCardsValue(getCardsValue(round.getPlayerCards()));
         round.setAppCardsValue(getCardsValue(round.getAppCards()));
 
-        // 5.e
+        //  5.e. Calcular el estado de la mano de cada jugador (Round.roundHandStatusPlayer y Round.roundHandStatusApp)
+        round.setRoundHandStatusPlayer(calculateRoundHand(round.getPlayerCardsValue()));
+        round.setRoundHandStatusApp(calculateAppHand(round.getAppCardsValue()));
 
-        // 5.f
+        //  5.f. Asignar las fichas en juego (Round.chipsInPlay)
+        round.setChipsInPlay(CHIPS_PER_ROUND.multiply(BigDecimal.valueOf(2)));
 
         // 5 -------FIN-------
         round = roundService.saveRound(round);
@@ -155,16 +166,34 @@ public class MatchServiceImpl implements MatchService {
     @Override
     public RoundResponseDTO playRoundMatch(Long matchId, Long roundId, RoundPlayDTO roundPlayDTO) {
         // TODO: Implementar el metodo de manera tal que haga las siguiestes acciones y validaciones:
+
         //  1. Validar que el matchId exista en la DB, si no exite retornar una exepción del
         //  tipo EntityNotFoundException con el mensaje "The match id {matchId} not found"
+        Match match = this.getMatchById(matchId);
+
         //  2. Validar que el roundId exista en la DB, si no exite retornar una exepción del
         //  tipo EntityNotFoundException con el mensaje "The round id {roundId} not found"
+        Round round = roundService.getRoundById(roundId);
+
         //  3. Validar que el match le pertenezca al player recibido por parametro, sino retornar
         //  una excepcion del tipo IllegalArgumentException con el mensaje "The match id {matchId} does not belong to player {playerId}"
+        if (!match.getPlayer().getId().equals(roundPlayDTO.getPlayerId())) {
+            throw new IllegalArgumentException(String.format("The match id %d does not belong to player %d", matchId, roundPlayDTO.getPlayerId()));
+        }
+
         //  4. Validar que el round le pertenezca al match, sino retornar
         //  una excepcion del tipo IllegalArgumentException con el mensaje "The round id {roundId} does not belong to match {matchId}"
+        if(!match.getRounds().contains(round)) {
+            throw new IllegalArgumentException(
+                    String.format("The round id %s does not belong to match %s", roundId, matchId));
+        }
+
         //  5. Validar que el round no este terminado (winner not null) y el jugador aun este en juego
         //  (Round.roundHandStatusPlayer.IN_GAME), sino retornar ResponseStatusException 403 con el mensaje "Round is end"
+        if (!(round.getWinner() == null && round.getRoundHandStatusPlayer().equals(RoundHandStatus.IN_GAME))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Round is end");
+        }
+
         //  6. Si las condiciones previas pasan correctamente, se debe ejecutar la acción del jugador.
         //  Para eso hacer las siguientes acciones:
         //  6.a. Si la accion es STOP entonces:
@@ -179,24 +208,6 @@ public class MatchServiceImpl implements MatchService {
         //    - Calcular el estado de la mano del jugador (Round.roundHandStatusApp).
         //      * Si el resultado es EXCEEDED, entonces ejecutar los pasos de la app como si el jugador hubiera parado.
         //      * Si el resultado es IN_GAME, entonces guardar los datos y retornar la respuesta.
-
-        // 1
-        Match match = this.getMatchById(matchId);
-
-        // 2
-        Round round = roundService.getRoundById(roundId);
-
-        // 3
-
-        // 4
-        if(!match.getRounds().contains(round)) {
-            throw new IllegalArgumentException(
-                    String.format("The round id %s does not belong to match %s", roundId, matchId));
-        }
-
-        // 5
-
-        // 6
         if(roundPlayDTO.getDecision().equals(RoundDecision.STOP)) {
             round.setRoundHandStatusPlayer(RoundHandStatus.STOPPED);
             playAppRound(round, match.getPlayer().getId());
