@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.beans.factory.annotation.Autowired;
 import ar.edu.utn.frc.tup.lciii.entities.MatchEntity;
 import ar.edu.utn.frc.tup.lciii.entities.PlayerEntity;
 import ar.edu.utn.frc.tup.lciii.models.MatchStatus;
